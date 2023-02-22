@@ -1,0 +1,226 @@
+
+
+
+# Library
+    
+#Importing the library
+
+import pandas as pd
+#Analyze the data 
+import seaborn as sns
+#visualization of data 
+import matplotlib.pyplot as plt
+from mlxtend.frequent_patterns import association_rules, apriori
+#apriori algorithm used for frequent item set mining.
+
+data=pd.read_csv(r"C:\Users\VISHNU\OneDrive\Documents\dataset\Groceries_dataset.csv",index_col=0)
+data=data.reset_index()
+data["itemDescription"]=data["itemDescription"].str.capitalize()
+data
+
+
+
+
+# Data Pre-processing
+
+
+
+#Finding number of rows and columns of dataset
+
+print("Number of Rows:",data.shape[0])
+print("Number of Columns:",data.shape[1])
+
+#DataCleaning by handling null values
+
+data.isnull().sum()
+
+#Checking for data types
+
+data.dtypes 
+
+#Changing columns names
+
+data.rename(columns={"itemDescription":"Item"},inplace=True)
+data
+
+
+# modifying the Date columns
+
+data["Year"]=pd.to_datetime(data["Date"]).dt.year
+data["Month"]=pd.to_datetime(data["Date"]).dt.month
+data["Week Day"]=pd.to_datetime(data["Date"]).dt.weekday
+data
+
+#Replacing months and days with names
+
+data["Month"]=data["Month"].replace((1,2,3,4,5,6,7,8,9,10,11,12),('January ','February','March','April' ,'May' ,'June'  ,'July' ,'August','September','October','November','December'))
+data["Week Day"]=data["Week Day"].replace((0,1,2,3,4,5,6),('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'))
+data
+
+
+
+
+#Data Analysis
+
+#Clustering
+
+
+#15 best-selling products
+
+bestselling=data["Item"].value_counts().reset_index(name='Quantity').head(15)
+bestselling.rename(columns={"index":"Item"},inplace=True)
+bestselling
+
+#Plotting graph of Top 15 selling product
+
+plt.figure(figsize=(20,10))
+colors=sns.color_palette('crest')
+ax=sns.barplot(x="Item",y="Quantity",data=bestselling,palette=colors)
+for i in ax.containers:
+    ax.bar_label(i)
+plt.title("15 best-selling products")
+plt.show()
+
+
+#15 Best customer 
+
+bestcustomer=data["Member_number"].value_counts().reset_index(name='Quantity').head(15)
+bestcustomer.rename(columns={"index":"Member_number"},inplace=True)
+bestcustomer
+
+#Plotting graph of Top 15 Best customer
+
+plt.figure(figsize=(20,10))
+colors=sns.color_palette('crest')
+ax=sns.barplot(x="Member_number",y="Quantity",data=bestcustomer,palette=colors)
+for i in ax.containers:
+    ax.bar_label(i)
+plt.title("15 Most frequent customer")
+plt.show()
+
+
+#10 less selling product
+
+lessselling=data["Item"].value_counts().reset_index(name='Quantity').tail(10)
+lessselling.rename(columns={"index":"Item"},inplace=True)
+lessselling
+
+#Plotting graph of 10 less selling product
+
+plt.figure(figsize=(20,10))
+colors=sns.color_palette('crest')
+ax=sns.barplot(x="Item",y="Quantity",data=lessselling,palette=colors)
+for i in ax.containers:
+    ax.bar_label(i)
+plt.title("10 Less-selling products")
+plt.show()
+
+
+#Total product sales by Years
+
+datayears=data.groupby("Year")["Item"].count().reset_index() 
+datayears
+
+#Plotting graph of Total product sales by Years
+
+
+datayearsy=datayears["Year"].tolist()
+dataitem=datayears["Item"].tolist()
+plt.figure(figsize=(13,5))
+plt.subplot(1,2,1)
+explode=(0.1,0)
+colors=sns.color_palette('Paired')
+plt.pie(dataitem,labels=datayearsy,autopct='%1.1f%%',explode=explode,colors=("#138D75","#F8C471"))
+plt.title('Sales by Years',size=13)
+### Bar chart
+plt.subplot(1,2,2)
+ax=sns.barplot(x="Year",y="Item",data=datayears,palette=("#512E5F","#A9CCE3"))
+for i in ax.containers:
+    ax.bar_label(i)
+plt.title('Sales by Years',size=13)    
+plt.show()
+
+
+#Total product sales by Month
+
+datamonth=data.groupby('Month')['Item'].count().reset_index()
+datamonth.rename(columns={"Item":"Quantity"},inplace = True)
+datamonth
+
+#Plotting graph of Total product sales by Month
+plt.figure(figsize=(15,5))
+colors=sns.color_palette("coolwarm")
+ax=sns.barplot(x="Month",y="Quantity",data=datamonth,palette=colors)
+for i in ax.containers:
+     ax.bar_label(i)
+plt.title('Sales by Month')
+plt.show()   
+
+#Total product sales by Week Day
+
+
+weekday=data.groupby('Week Day')['Item'].count().reset_index(name="Quantity")
+weekday
+
+
+
+#Plotting graph for Total product sales by Week Day
+
+
+
+plt.figure(figsize=(15,5))
+colors=sns.color_palette("Paired")
+ax=sns.barplot(x="Week Day",y="Quantity",data=weekday,palette=colors)
+plt.title("Total product sales by Week Day")
+for i in ax.containers:
+    ax.bar_label(i)
+plt.show()   
+
+
+
+#How many products were sold by months? 
+
+
+productsales=data.groupby(["Month","Item"])["Item"].count().reset_index(name="Quantity").sort_values(["Month","Quantity"],ascending=False)
+productsales
+
+
+#Plotting the graph of How many products were sold by months?
+
+
+productsales=data.groupby(["Month","Item"])["Item"].count().reset_index(name="Quantity").sort_values(["Month","Quantity"],ascending=False)
+monthinfo=data["Month"].unique()
+
+plt.figure(figsize=(30,18))
+colors=sns.color_palette('flare')
+for i,j in enumerate(monthinfo):
+    plt.subplot(4,3,i+1)
+    productdata=productsales[productsales["Month"]==j].head(10)
+    ax=sns.barplot(x="Quantity",y="Item",data=productdata,palette=colors)
+    for i in ax.containers:
+        ax.bar_label(i)
+    plt.xlabel('')
+    plt.ylabel('')
+    plt.title('Sale for "{}"'.format(j))
+    
+    
+#ARL Analysis
+dataquantity=data.groupby(["Member_number","Item"])["Item"].count().reset_index(name="Quantity")
+dataquantity
+
+datapivot=dataquantity.pivot_table(index="Member_number",columns="Item",values="Quantity",aggfunc="sum").fillna(0)
+datapivot
+
+def func(piv):
+    if piv <=0:
+        return 0
+    if piv >=1:
+        return 1
+datapivot=datapivot.applymap(func)
+datapivot
+
+aprioridata=apriori(datapivot,min_support=0.01,use_colnames=True)
+aprioridata
+
+rules=association_rules(aprioridata,metric="lift",min_threshold=1)
+rules
